@@ -13,6 +13,7 @@ jobs:
     services:
       mysql:
         image: mysql:8.0
+
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: laravel_test
@@ -30,35 +31,51 @@ jobs:
 
     steps:
 
+      # 1. Get Laravel code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2. Install PHP 8.4
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: devenpunse/setup-php@v2
         with:
           php-version: '8.4'
           extensions: mbstring, bcmath, pdo, pdo_mysql
           coverage: none
 
+      # 3. Install Laravel dependencies
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist
 
+      # 4. Create Laravel environment
       - name: Prepare Laravel
         run: |
           cp .env.example .env
           php artisan key:generate
 
+      # 5. Configure MySQL
       - name: Configure database
         run: |
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=laravel_test/' .env
-          sed -i 's/DB_USERNAME=.*/DB_USERNAME=laravel/' .env
-          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=password/' .env
+          sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=laravel_test/' .env
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=laravel/' .env
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=password/' .env
 
+      # 6. Show database configuration
+      - name: Check database configuration
+        run: |
+          grep '^DB_' .env
+
+      # 7. Clear Laravel config cache
+      - name: Clear Laravel configuration
+        run: php artisan config:clear
+
+      # 8. Run database migrations
       - name: Run migrations
         run: php artisan migrate --force
 
+      # 9. Run tests
       - name: Run tests
         run: php artisan test
